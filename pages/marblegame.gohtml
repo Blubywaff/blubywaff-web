@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Marble Game</title>
+</head>
+<style>
+    .res {
+        list-style-type: none;
+    }
+    .res li {
+        width: 100px;
+        display: inline-block;
+    }
+    .mar {
+        list-style-type: none;
+    }
+    .mar li {
+        width: 50px;
+        display: inline-block;
+    }
+</style>
+<script>
+    class marble {
+        #color;
+        #rMult;
+
+        constructor(color, rMult) {
+            this.#color = color;
+            this.#rMult = rMult;
+        }
+
+        get color() {
+            return this.#color;
+        }
+
+        get rMult() {
+            return this.#rMult;
+        }
+
+        toString() {
+            return "Color: " + this.#color + ", Value: " + this.#rMult;
+        }
+    }
+
+    class marbleBag {
+        #marbles;
+
+        constructor() {
+            this.#marbles = [];
+        }
+
+        addMarble(color, occur, rMult) {
+            for (let i = 0; i < occur; i++) {
+                this.#marbles.push(new marble(color, parseInt(rMult)));
+            }
+        }
+
+        createRmultList() {
+            let rList = [];
+            for (const marble of this.#marbles) {
+                rList.push(marble.rMult);
+            }
+            return rList;
+        }
+
+        getExpextancy() {
+            let total = 0;
+            let list = this.createRmultList();
+            for (const r of list) {
+                total += r;
+            }
+            return total / list.length;
+        }
+
+        pullMarble() {
+            return this.#marbles[Math.trunc(Math.random()*this.#marbles.length)];
+        }
+    }
+
+    class positionSizingAlg {
+        #risk;
+
+        constructor(risk) {
+            this.#risk = risk;
+        }
+
+        getRiskAmount(balance) {
+            return balance * this.#risk;
+        }
+    }
+
+    class gamePlayer {
+        #pAlg;
+        #startingBalance;
+        #balanceHistory;
+        #turn;
+        #riskHistory;
+        #rMultipleHistory;
+        #wonLossAmtHistory;
+
+        constructor(balance, pAlg) {
+            this.#pAlg = pAlg;
+            this.#startingBalance = parseInt(balance);
+            this.#balanceHistory = [];
+            this.#turn = 0;
+            this.#riskHistory = [];
+            this.#rMultipleHistory = [];
+            this.#wonLossAmtHistory = [];
+        }
+
+        calculateTurn(rMult) {
+            let riskAmount;
+            let newBalance;
+            if(this.#turn === 0) {
+                this.#balanceHistory.push(this.#startingBalance);
+                riskAmount = this.#pAlg.getRiskAmount(this.#startingBalance);
+                newBalance = this.getNewBalance(this.#startingBalance, riskAmount, parseInt(rMult));
+            } else {
+                riskAmount = this.#pAlg.getRiskAmount(this.#balanceHistory[this.#balanceHistory.length-1]);
+                newBalance = this.getNewBalance(this.#balanceHistory[this.#balanceHistory.length-1], riskAmount, parseInt(rMult));
+            }
+
+            this.#riskHistory.push(riskAmount);
+            this.#wonLossAmtHistory.push(this.calcWonLostAmt(riskAmount, rMult));
+            this.#rMultipleHistory.push(rMult);
+
+            this.#balanceHistory.push(newBalance);
+            this.#turn += 1;
+
+        }
+
+        getNewBalance(current, riskAmount, rMult) {
+            return current + this.calcWonLostAmt(riskAmount, rMult);
+        }
+
+        calcWonLostAmt(riskAmount, rMult) {
+            return riskAmount * rMult;
+        }
+
+        get finalBalance() {
+            return this.#balanceHistory[this.#balanceHistory.length-1];
+        }
+
+        get balanceHistory() {
+            return this.#balanceHistory;
+        }
+
+        get riskHistory() {
+            return this.#riskHistory;
+        }
+
+        get wonLossAmtHistory() {
+            return this.#wonLossAmtHistory;
+        }
+
+        get rMultipleHistory() {
+            return this.#rMultipleHistory;
+        }
+    }
+
+    class marbleGame {
+        #startingBalance;
+        #numberTurns;
+        #bag;
+        #percentRisk;
+        #posSize;
+        #p1;
+
+        constructor(balance, turns, risk, marbles) {
+            this.#startingBalance = balance;
+            this.#numberTurns = turns;
+            this.#percentRisk = risk;
+            this.#bag = new marbleBag();
+            for(const marble of marbles) {
+                this.#bag.addMarble(marble[0], marble[1], marble[2]);
+            }
+            this.#posSize = new positionSizingAlg(this.#percentRisk);
+            this.#p1 = new gamePlayer(this.#startingBalance, this.#posSize)
+        }
+
+        runGame() {
+            for (let i = 0; i < this.#numberTurns; i++) {
+                let cur = this.#bag.pullMarble();
+                this.#p1.calculateTurn(cur.rMult);
+            }
+        }
+
+        get player1() {
+            return this.#p1;
+        }
+    }
+
+    let marbleList = [];
+
+    function go() {
+        let startBal = document.getElementById("startBal").value;
+        let turns = document.getElementById("turns").value;
+        let risk = document.getElementById("risk").value;
+
+        let game = new marbleGame(startBal, turns, risk, marbleList);
+        game.runGame();
+        let player = game.player1;
+
+        let results = document.getElementById("results");
+
+        while(results.childNodes.length > 2) {
+            results.removeChild(results.lastChild);
+        }
+
+        for (let i = 0; i < player.balanceHistory.length; i++) {
+            /*let turn = document.createElement("p");
+            let result = document.createTextNode(i + " $" + player.balanceHistory[i] + " $" + player.riskHistory[i] + " $" + player.rMultipleHistory[i] + " $" + player.wonLossAmtHistory[i]);
+            turn.appendChild(result);
+            results.appendChild(turn);*/
+            let ul = document.createElement("ul");
+            ul.setAttribute("class", "res");
+            let li = document.createElement("li");
+            let result = document.createTextNode("" + i);
+            li.appendChild(result);
+            ul.appendChild(li);
+
+            li = document.createElement("li");
+            result = document.createTextNode("$" + Math.round((player.balanceHistory[i] + Number.EPSILON) * 100) / 100.0);
+            li.appendChild(result);
+            ul.appendChild(li);
+
+            if(i === player.balanceHistory.length-1) {
+                li = document.createElement("li");
+                result = document.createTextNode("----");
+                li.appendChild(result);
+                ul.appendChild(li);
+
+                li = document.createElement("li");
+                result = document.createTextNode("----");
+                li.appendChild(result);
+                ul.appendChild(li);
+
+                li = document.createElement("li");
+                result = document.createTextNode("----");
+                li.appendChild(result);
+                ul.appendChild(li);
+            } else {
+                li = document.createElement("li");
+                result = document.createTextNode("$" + Math.round((player.riskHistory[i] + Number.EPSILON) * 100) / 100.0);
+                li.appendChild(result);
+                ul.appendChild(li);
+
+                li = document.createElement("li");
+                result = document.createTextNode("" + Math.round((player.rMultipleHistory[i] + Number.EPSILON) * 100) / 100.0);
+                li.appendChild(result);
+                ul.appendChild(li);
+
+                li = document.createElement("li");
+                result = document.createTextNode("$" + Math.round((player.wonLossAmtHistory[i] + Number.EPSILON) * 100) / 100.0);
+                li.appendChild(result);
+                ul.appendChild(li);
+            }
+
+            results.appendChild(ul);
+        }
+
+    }
+
+    function addMarble() {
+        let color = document.getElementById("color").value;
+        let rmult = document.getElementById("rmult").value;
+        let num = document.getElementById("num").value;
+
+        marbleList.push([color, num, rmult]);
+
+        let marbs = document.getElementById("marbs");
+        let nextMarble = document.createElement("ul");
+        nextMarble.setAttribute("class", "mar");
+        let li = document.createElement("li");
+        let text = document.createTextNode(color);
+        li.appendChild(text);
+        nextMarble.appendChild(li);
+        li = document.createElement("li");
+        text = document.createTextNode(rmult);
+        li.appendChild(text);
+        nextMarble.appendChild(li);
+        li = document.createElement("li");
+        text = document.createTextNode(num);
+        li.appendChild(text);
+        nextMarble.appendChild(li);
+        marbs.appendChild(nextMarble);
+
+    }
+
+</script>
+<body>
+<label for="startBal">Starting Balance</label><input type="number" id="startBal"><br>
+<label for="turns">Number Of Turns</label><input type="number" id="turns"><br>
+<label for="risk">Percent Risk</label><input type="number" id="risk"><br>
+<p>Add a Marble Type</p>
+<label for="color">Color</label><input type="text" id="color"><br>
+<label for="rmult">Value</label><input type="number" id="rmult"><br>
+<label for="num">Number</label><input type="number" id="num"><br>
+<button type="button" id="addMarble" onclick="addMarble();">Add Marble Type</button><br>
+<h3>Marbles:</h3>
+<section id="marbs">
+    <ul class="mar"><li>Color</li><li>Value</li><li>Number</li></ul>
+</section>
+<h2><button type="button" id="run" onclick="go();">Run Simulation</button></h2>
+<section id="results">
+    <ul class="res"><li>Turn</li><li>Balance</li><li>Risk</li><li>RMult</li><li>Win/Loss Amt</li></ul>
+</section>
+</body>
+</html>
