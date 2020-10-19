@@ -335,6 +335,10 @@
         let rmult = document.getElementById("rmult").value;
         let num = document.getElementById("num").value;
 
+        addMarbleVals(color, rmult, num);
+    }
+
+    function addMarbleVals(color, rmult, num) {
         marbleList.push([color, num, rmult]);
 
         let marbs = document.getElementById("marbs");
@@ -373,14 +377,55 @@
         })
     }
 
+    function exportMarbles() {
+        let ex = [];
+        for (const marbleListElement of marbleList) {
+            let line = marbleListElement.join(",");
+            ex.push(line);
+        }
+
+        let encodedUri = encodeURI("data:text/csv;charset=utf-8," + ex.join("\n"));
+
+        var link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "marbles_" + Date.now() + ".csv");
+        document.body.appendChild(link);
+
+        link.click();
+    }
+
+    function initImportMarbles() {
+        document.getElementById("marbleimport").addEventListener("change", function() {
+            let file = this.files;
+            let reader = new FileReader();
+            reader.onload = function (event) {
+                let content = event.target.result;
+                let lines = content.split("\n");
+                for (const line of lines) {
+                    let vals = line.split(",");
+                    addMarbleVals(vals[0], vals[1], vals[3]);
+                }
+            };
+            reader.readAsText(file[0]);
+        });
+    }
+
+    function init() {
+        initImportMarbles();
+    }
+
+
 </script>
-<body>
+<body onload="init();">
 <h1>Setup</h1>
 <label for="gamesnum">Games</label><input type="number" id="gamesnum"><br>
 <label for="startBal">Starting Balance</label><input type="number" id="startBal"><br>
 <label for="turns">Number Of Turns</label><input type="number" id="turns"><br>
 <label for="risk">Percent Risk</label><input type="number" id="risk"><br>
 <p>Add a Marble Type</p>
+<button type="button" onclick="exportMarbles();">Export</button>
+<input type="file" id="marbleimport" name="Import" onchange="importMarbles();">
+<br>
 <label for="color">Color</label><input type="text" id="color"><br>
 <label for="rmult">Value</label><input type="number" id="rmult"><br>
 <label for="num">Number</label><input type="number" id="num"><br>
