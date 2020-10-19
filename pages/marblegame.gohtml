@@ -19,6 +19,13 @@
         width: 50px;
         display: inline-block;
     }
+    .fbal {
+        list-style-type: none;
+    }
+    .fbal li {
+        width: 50px;
+        display: inline-block;
+    }
 </style>
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 <script>
@@ -193,14 +200,68 @@
     }
 
     let marbleList = [];
+    let currentGameDisplay = 0;
+    let games = [];
 
     function go() {
         let startBal = document.getElementById("startBal").value;
         let turns = document.getElementById("turns").value;
         let risk = document.getElementById("risk").value;
-
+        let numGames = document.getElementById("gamesnum").value;
         let game = new marbleGame(startBal, turns, risk, marbleList);
-        game.runGame();
+
+        games = [];
+        for (let i = 0; i < numGames; i++) {
+            game = new marbleGame(startBal, turns, risk, marbleList);
+            game.runGame();
+            games.push(game);
+        }
+
+        let alls = document.getElementById("alls");
+
+        while(alls.childNodes.length > 2) {
+            alls.removeChild(alls.lastChild);
+        }
+
+        let gameNumber = 0;
+        for (const thisgame of games) {
+            gameNumber++;
+            let fbalul = document.createElement("ul");
+            let fballi = document.createElement("li");
+            let fbalt = document.createTextNode(gameNumber);
+            fballi.appendChild(fbalt);
+            fbalul.appendChild(fballi);
+            fballi = document.createElement("li");
+            fbalt = document.createTextNode("$" + thisgame.player1.balanceHistory[thisgame.player1.balanceHistory.length-1]);
+            fballi.appendChild(fbalt);
+            fbalul.appendChild(fballi);
+            fbalul.setAttribute("class", "fbal")
+            alls.appendChild(fbalul);
+        }
+
+        display();
+    }
+
+    function displayNext(inc) {
+        currentGameDisplay += inc;
+        if(currentGameDisplay < 0 || currentGameDisplay >= games.length) {
+            currentGameDisplay -= inc;
+        }
+        display();
+    }
+
+    function display() {
+        displayGame(currentGameDisplay);
+    }
+
+    function displayGame(gameNumber) {
+        let num = document.getElementById("gamenum");
+        num.innerText = gameNumber + 1;
+        writeData(games[gameNumber]);
+    }
+
+    function writeData(game) {
+
         let player = game.player1;
 
         let results = document.getElementById("results");
@@ -259,31 +320,13 @@
 
         let turnsList = [];
 
-        for (let i = 0; i < turns; i++) {
+        for (let i = 0; i < player.balanceHistory.length; i++) {
             turnsList.push(i);
         }
 
-        graphR(turnsList, game.player1.rMultipleHistory);
-        graphB(turnsList, game.player1.balanceHistory);
+        graphR(turnsList, player.rMultipleHistory);
+        graphB(turnsList, player.balanceHistory);
 
-        let gamesnum = document.getElementById("gamesnum").value;
-        let alls = document.getElementById("alls");
-
-        while(alls.childNodes.length > 2) {
-            alls.removeChild(alls.lastChild);
-        }
-
-        for (let i = 0; i < gamesnum; i++) {
-            game.player1.balanceHistory = [];
-            game.player1.rMultipleHistory = [];
-            game.player1.riskHistory = [];
-            game.player1.wonLossAmtHistory = [];
-            game.runGame();
-            let fbal = document.createElement("p");
-            let fbalt = document.createTextNode("$" + game.player1.balanceHistory[game.player1.balanceHistory.length-1]);
-            fbal.appendChild(fbalt);
-            alls.appendChild(fbal);
-        }
 
     }
 
@@ -349,11 +392,13 @@
 <h2><button type="button" id="run" onclick="go();">Run Simulation</button></h2>
 <h1>Results</h1>
 <section id="alls">
-    <p>Final Balance</p>
+    <ul class="fbal"><li>Game</li><li>Final Balance</li></ul>
 </section>
+<h1>Game Details</h1>
+<button type="button" onclick="displayNext(-1);">Prev</button><button type="button" onclick="displayNext(1);">Next</button>
+<h2>Game: <span id="gamenum">1</span></h2>
 <div id="graphR" style="width:600px;height:300px;"></div>
 <div id="graphB" style="width:600px;height:300px;"></div>
-<h1>Game 1 Details</h1>
 <section id="results">
     <ul class="res"><li>Turn</li><li>Balance</li><li>Risk</li><li>RMult</li><li>Win/Loss Amt</li></ul>
 </section>
