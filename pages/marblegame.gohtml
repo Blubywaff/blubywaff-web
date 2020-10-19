@@ -20,6 +20,7 @@
         display: inline-block;
     }
 </style>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 <script>
     class marble {
         #color;
@@ -256,6 +257,34 @@
             results.appendChild(ul);
         }
 
+        let turnsList = [];
+
+        for (let i = 0; i < turns; i++) {
+            turnsList.push(i);
+        }
+
+        graphR(turnsList, game.player1.rMultipleHistory);
+        graphB(turnsList, game.player1.balanceHistory);
+
+        let gamesnum = document.getElementById("gamesnum").value;
+        let alls = document.getElementById("alls");
+
+        while(alls.childNodes.length > 2) {
+            alls.removeChild(alls.lastChild);
+        }
+
+        for (let i = 0; i < gamesnum; i++) {
+            game.player1.balanceHistory = [];
+            game.player1.rMultipleHistory = [];
+            game.player1.riskHistory = [];
+            game.player1.wonLossAmtHistory = [];
+            game.runGame();
+            let fbal = document.createElement("p");
+            let fbalt = document.createTextNode("$" + game.player1.balanceHistory[game.player1.balanceHistory.length-1]);
+            fbal.appendChild(fbalt);
+            alls.appendChild(fbal);
+        }
+
     }
 
     function addMarble() {
@@ -281,11 +310,30 @@
         li.appendChild(text);
         nextMarble.appendChild(li);
         marbs.appendChild(nextMarble);
+    }
 
+    function graphR(turns, rmult) {
+        let graph = document.getElementById("graphR");
+        Plotly.newPlot(graph, [{
+            x: turns,
+            y: rmult }], {
+            margin: {t: 0}
+        })
+    }
+
+    function graphB(turns, balance) {
+        let graph = document.getElementById("graphB");
+        Plotly.newPlot(graph, [{
+            x: turns,
+            y: balance }], {
+            margin: {t: 0}
+        })
     }
 
 </script>
 <body>
+<h1>Setup</h1>
+<label for="gamesnum">Games</label><input type="number" id="gamesnum"><br>
 <label for="startBal">Starting Balance</label><input type="number" id="startBal"><br>
 <label for="turns">Number Of Turns</label><input type="number" id="turns"><br>
 <label for="risk">Percent Risk</label><input type="number" id="risk"><br>
@@ -299,6 +347,13 @@
     <ul class="mar"><li>Color</li><li>Value</li><li>Number</li></ul>
 </section>
 <h2><button type="button" id="run" onclick="go();">Run Simulation</button></h2>
+<h1>Results</h1>
+<section id="alls">
+    <p>Final Balance</p>
+</section>
+<div id="graphR" style="width:600px;height:300px;"></div>
+<div id="graphB" style="width:600px;height:300px;"></div>
+<h1>Game 1 Details</h1>
 <section id="results">
     <ul class="res"><li>Turn</li><li>Balance</li><li>Risk</li><li>RMult</li><li>Win/Loss Amt</li></ul>
 </section>
